@@ -1,20 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-  Calendar, 
-  MapPin, 
-  Sparkles, 
-  Utensils, 
-  Waves, 
-  ConciergeBell, 
-  Play, 
+import {
+  Sparkles,
+  Utensils,
+  Waves,
   ArrowRight,
-  Award,
-  Compass,
-  Percent,
-  ShieldCheck,
-  Heart,
   Coffee,
   Wifi,
   Shield,
@@ -27,56 +18,94 @@ import {
 } from 'lucide-react';
 
 export default function HotelReservationPage() {
-  // Updated state types to accept 'contact'
-  const [activePage, setActivePage] = useState<'home' | 'about' | 'rooms' | 'contact'>('home');
+
+  const [activePage, setActivePage] = useState<
+    'home' | 'about' | 'rooms' | 'contact' | 'booking'
+  >('home');
+
+  // FIXED ERROR
+  const [bookingStep, setBookingStep] = useState(1);
 
   return (
     <div className="min-h-screen bg-[#1C1C1C] text-white font-sans selection:bg-[#addfac] selection:text-black scroll-smooth">
-      
-      {/* GLOBAL HEADER / NAVIGATION */}
-      <header className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center bg-transparent relative z-50">
-        <div 
-          className="h-16 sm:h-20 md:h-24 w-auto flex items-center justify-start cursor-pointer"
+
+      {/* HEADER */}
+      <header className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center relative z-50">
+
+        <div
+          className="h-16 sm:h-20 md:h-24 w-auto flex items-center cursor-pointer"
           onClick={() => setActivePage('home')}
         >
-          <img 
-            src="/logo_hotel-removebg-preview.png" 
-            alt="Whisper of the Sea Logo" 
-            className="h-full w-auto object-contain brightness-110 contrast-105"
+          <img
+            src="/logo_hotel-removebg-preview.png"
+            alt="Whisper of the Sea Logo"
+            className="h-full w-auto object-contain"
           />
         </div>
-        
+
         <nav className="hidden md:flex items-center gap-8 text-sm tracking-wider">
-          <button 
+
+          <button
             onClick={() => setActivePage('home')}
-            className={`transition-colors uppercase tracking-widest text-xs font-medium ${activePage === 'home' ? 'text-[#addfac]' : 'text-stone-400 hover:text-[#addfac]'}`}
+            className={`uppercase text-xs transition ${
+              activePage === 'home'
+                ? 'text-[#addfac]'
+                : 'text-stone-400 hover:text-[#addfac]'
+            }`}
           >
             Home
           </button>
-          <button 
+
+          <button
             onClick={() => setActivePage('about')}
-            className={`transition-colors uppercase tracking-widest text-xs font-medium ${activePage === 'about' ? 'text-[#addfac]' : 'text-stone-400 hover:text-[#addfac]'}`}
+            className={`uppercase text-xs transition ${
+              activePage === 'about'
+                ? 'text-[#addfac]'
+                : 'text-stone-400 hover:text-[#addfac]'
+            }`}
           >
             About
           </button>
-          <button 
+
+          <button
             onClick={() => setActivePage('rooms')}
-            className={`transition-colors uppercase tracking-widest text-xs font-medium ${activePage === 'rooms' ? 'text-[#addfac]' : 'text-stone-400 hover:text-[#addfac]'}`}
+            className={`uppercase text-xs transition ${
+              activePage === 'rooms'
+                ? 'text-[#addfac]'
+                : 'text-stone-400 hover:text-[#addfac]'
+            }`}
           >
             Rooms
           </button>
-          {/* Changed anchor to button with click state handler */}
-          <button 
+
+          <button
+            onClick={() => setActivePage('booking')}
+            className={`uppercase text-xs transition ${
+              activePage === 'booking'
+                ? 'text-[#addfac]'
+                : 'text-stone-400 hover:text-[#addfac]'
+            }`}
+          >
+            Booking
+          </button>
+
+          <button
             onClick={() => setActivePage('contact')}
-            className={`transition-colors uppercase tracking-widest text-xs font-medium ${activePage === 'contact' ? 'text-[#addfac]' : 'text-stone-400 hover:text-[#addfac]'}`}
+            className={`uppercase text-xs transition ${
+              activePage === 'contact'
+                ? 'text-[#addfac]'
+                : 'text-stone-400 hover:text-[#addfac]'
+            }`}
           >
             Contact
           </button>
+
         </nav>
 
-        <button className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black font-semibold text-xs px-5 py-2.5 rounded shadow-lg shadow-[#addfac]/10 hover:brightness-110 transition-all uppercase tracking-wider">
+        <button className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black text-xs px-5 py-2.5 rounded font-semibold">
           Log Out
         </button>
+
       </header>
 
       {/* --- PAGE CONDITIONAL RENDERING --- */}
@@ -91,7 +120,7 @@ export default function HotelReservationPage() {
               </h1>
               <div className="flex items-center gap-4 pt-4">
                 <button 
-                  onClick={() => setActivePage('rooms')}
+                  onClick={() => setActivePage('booking')}
                   className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-[#addfac] text-black font-semibold text-sm px-6 py-3 rounded shadow-xl hover:brightness-110 transition-all"
                 >
                  Book Now! <ArrowRight className="w-4 h-4" />
@@ -137,7 +166,7 @@ export default function HotelReservationPage() {
                     <p className="text-xs text-[#addfac]/80 italic font-light tracking-wide">{suite.sub}</p>
                     <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <button 
-                        onClick={() => setActivePage('rooms')}
+                        onClick={() => setActivePage('booking')}
                         className="text-[10px] uppercase tracking-widest text-white border-b border-[#addfac] pb-0.5"
                       >
                         Book Now!
@@ -150,7 +179,7 @@ export default function HotelReservationPage() {
           </section>
         </>
       )}
-
+      
       {/* --- STANDALONE ABOUT US VIEW --- */}
       {activePage === 'about' && (
         <div className="animate-fadeIn">
@@ -359,6 +388,386 @@ export default function HotelReservationPage() {
         </div>
       )}
 
+{/* --- MULTI STEP BOOKING PAGE --- */}
+{activePage === 'booking' && (
+  <div className="animate-fadeIn min-h-screen bg-[#1C1C1C] text-white">
+
+    {/* HERO */}
+    <section className="relative h-[320px] overflow-hidden flex items-center justify-center">
+      <img
+        src="pic 1.jpg"
+        alt="Booking"
+        className="absolute inset-0 w-full h-full object-cover brightness-[0.25]"
+      />
+
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#1C1C1C]"></div>
+
+      <div className="relative z-10 text-center">
+        <h1 className="text-5xl md:text-6xl font-serif italic text-white">
+          Luxury Reservation
+        </h1>
+
+        <p className="mt-4 text-sm tracking-[0.3em] uppercase text-[#addfac]">
+          Complete Your Booking Experience
+        </p>
+      </div>
+    </section>
+
+    {/* FORM */}
+    <section className="max-w-5xl mx-auto px-6 py-16">
+
+      <div className="bg-[#242424]/50 border border-stone-800 rounded-3xl shadow-2xl overflow-hidden">
+
+        {/* TOP STEP BAR */}
+        <div className="border-b border-stone-800 p-8">
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+
+            {/* STEP 1 */}
+            <div className="flex items-center gap-4">
+
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                bookingStep >= 1
+                  ? "bg-[#addfac] text-black"
+                  : "bg-stone-800 text-white"
+              }`}>
+                1
+              </div>
+
+              <div>
+                <h3 className="text-white font-semibold">Client Information</h3>
+                <p className="text-xs text-stone-400">
+                  Personal Details
+                </p>
+              </div>
+
+            </div>
+
+            <div className="hidden md:block w-20 h-[1px] bg-stone-700"></div>
+
+            {/* STEP 2 */}
+            <div className="flex items-center gap-4">
+
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                bookingStep >= 2
+                  ? "bg-[#addfac] text-black"
+                  : "bg-stone-800 text-white"
+              }`}>
+                2
+              </div>
+
+              <div>
+                <h3 className="text-white font-semibold">Room Reservation</h3>
+                <p className="text-xs text-stone-400">
+                  Booking Schedule
+                </p>
+              </div>
+
+            </div>
+
+            <div className="hidden md:block w-20 h-[1px] bg-stone-700"></div>
+
+            {/* STEP 3 */}
+            <div className="flex items-center gap-4">
+
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                bookingStep >= 3
+                  ? "bg-[#addfac] text-black"
+                  : "bg-stone-800 text-white"
+              }`}>
+                3
+              </div>
+
+              <div>
+                <h3 className="text-white font-semibold">Billing Payment</h3>
+                <p className="text-xs text-stone-400">
+                  Secure Checkout
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* PAGE CONTENT */}
+        <div className="p-8 md:p-12 space-y-10">
+
+          {/* ================= STEP 1 ================= */}
+          {bookingStep === 1 && (
+            <>
+              <div>
+                <h2 className="text-3xl font-serif text-white">
+                  Guest Information
+                </h2>
+
+                <p className="text-stone-400 text-sm mt-3 leading-relaxed">
+                  Please provide your complete personal information for your
+                  reservation confirmation.
+                </p>
+              </div>
+
+              {/* FORM GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    First Name
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="John"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Last Name
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Doe"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Email Address
+                  </label>
+
+                  <input
+                    type="email"
+                    placeholder="example@gmail.com"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Phone Number
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="+63 9123456789"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Complete Address
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Street Address"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Country
+                  </label>
+
+                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
+                    <option>Philippines</option>
+                    <option>United States</option>
+                    <option>Canada</option>
+                    <option>Japan</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Valid ID Type
+                  </label>
+
+                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
+                    <option>Passport</option>
+                    <option>Driver License</option>
+                    <option>National ID</option>
+                  </select>
+                </div>
+
+              </div>
+
+              {/* NEXT BUTTON */}
+              <div className="flex justify-end pt-4">
+
+                <button
+                  onClick={() => setBookingStep(2)}
+                  className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
+                >
+                  Continue Reservation
+                </button>
+
+              </div>
+            </>
+          )}
+
+          {/* ================= STEP 2 ================= */}
+          {bookingStep === 2 && (
+            <>
+              <div>
+                <h2 className="text-3xl font-serif text-white">
+                  Room Reservation
+                </h2>
+
+                <p className="text-stone-400 text-sm mt-3 leading-relaxed">
+                  Select your booking schedule and room preferences.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Check In
+                  </label>
+
+                  <input
+                    type="date"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Check Out
+                  </label>
+
+                  <input
+                    type="date"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Guests
+                  </label>
+
+                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
+                    <option>1 Guest</option>
+                    <option>2 Guests</option>
+                    <option>3 Guests</option>
+                    <option>4 Guests</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Room Type
+                  </label>
+
+                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
+                    <option>Deluxe Room</option>
+                    <option>Executive Suite</option>
+                    <option>Presidential Suite</option>
+                  </select>
+                </div>
+
+              </div>
+
+              {/* BUTTONS */}
+              <div className="flex items-center justify-between pt-4">
+
+                <button
+                  onClick={() => setBookingStep(1)}
+                  className="border border-stone-700 px-8 py-4 rounded-xl uppercase tracking-widest hover:bg-stone-800 transition"
+                >
+                  Previous
+                </button>
+
+                <button
+                  onClick={() => setBookingStep(3)}
+                  className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
+                >
+                  Continue
+                </button>
+
+              </div>
+            </>
+          )}
+
+          {/* ================= STEP 3 ================= */}
+          {bookingStep === 3 && (
+            <>
+              <div>
+                <h2 className="text-3xl font-serif text-white">
+                  Billing Payment
+                </h2>
+
+                <p className="text-stone-400 text-sm mt-3 leading-relaxed">
+                  Complete your secure payment process.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Card Holder Name
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-widest text-stone-400">
+                    Card Number
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="**
+**
+** 1234"
+                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                  />
+                </div>
+
+              </div>
+
+              {/* BUTTONS */}
+              <div className="flex items-center justify-between pt-4">
+
+                <button
+                  onClick={() => setBookingStep(2)}
+                  className="border border-stone-700 px-8 py-4 rounded-xl uppercase tracking-widest hover:bg-stone-800 transition"
+                >
+                  Previous
+                </button>
+
+                <button
+                  className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
+                >
+                  Confirm Booking
+                </button>
+
+              </div>
+            </>
+          )}
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+)}
       {/* --- STANDALONE CONTACT VIEW (Brand New Implementation based on reference images) --- */}
       {activePage === 'contact' && (
         <div className="animate-fadeIn">
