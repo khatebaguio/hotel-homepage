@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import emailjs from '@emailjs/browser';
 import {
   Sparkles,
   Utensils,
@@ -17,7 +18,7 @@ import {
   Store,
   MessageSquare
 } from 'lucide-react';
-import HomeView from './components/Homepage';
+import HomeView from './components/HomeView';
 
 export default function HotelReservationPage() {
   const router = useRouter();
@@ -124,6 +125,7 @@ export default function HotelReservationPage() {
 
   const handleSendEmail = () => {
     setIsSendingEmail(true);
+    setEmailStatus('auth');
     
     // Constructing the professional email body
     const subject = encodeURIComponent(`CONFIRMED: Reservation Receipt #${bookingData.receiptId} - Whisper of the Sea`);
@@ -170,13 +172,22 @@ The Sanctuary Team
 Whisper of the Sea Resort & Spa`
     );
 
-    // Simulation of server transmission
+    // Multi-stage high-fidelity transmission simulation
+    setTimeout(() => setEmailStatus('encrypt'), 600);
+    setTimeout(() => setEmailStatus('deliver'), 1200);
+    
     setTimeout(() => {
       setIsSendingEmail(false);
       setEmailSent(true);
-      // Trigger the manual send via mail client
-      window.location.href = `mailto:${bookingData.email}?subject=${subject}&body=${body}`;
-    }, 1200);
+      setEmailStatus('sent');
+      
+      // Target Gmail web interface specifically for a better "Transmitted to Gmail" experience
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${bookingData.email}&su=${subject}&body=${body}`;
+      
+      // Open Gmail in a new tab
+      window.open(gmailUrl, '_blank');
+      
+    }, 2000);
   };
 
   const validateStep1 = () => {
@@ -228,6 +239,35 @@ Whisper of the Sea Resort & Spa`
 
     // Functional booking confirmation
     setBookingSuccess(true);
+
+    // Save to admin_bookings for admin visibility
+    try {
+      const currentBookings = JSON.parse(localStorage.getItem('admin_bookings') || '[]');
+      
+      // Attempt to get actual price from offerings
+      let totalPrice = '₱ --';
+      const roomOfferings = JSON.parse(localStorage.getItem('hotel_offerings') || '[]');
+      const selectedRoom = roomOfferings.find((r: any) => r.title === bookingData.roomType);
+      if (selectedRoom && selectedRoom.price) {
+        totalPrice = selectedRoom.price;
+      }
+
+      const newBookingEntry = {
+        id: rId,
+        guestName: `${bookingData.firstName} ${bookingData.lastName}`,
+        email: bookingData.email,
+        roomType: bookingData.roomType,
+        checkIn: bookingData.checkIn,
+        checkOut: bookingData.checkOut,
+        status: 'Confirmed',
+        totalAmount: totalPrice
+      };
+
+      localStorage.setItem('admin_bookings', JSON.stringify([...currentBookings, newBookingEntry]));
+    } catch (e) {
+      console.error('Failed to save booking to admin store', e);
+    }
+
     // In a real app, you'd send this to an API
     console.log('Booking Confirmed:', { ...bookingData, receiptId: rId, receiptDate: rDate });
   };
@@ -264,6 +304,25 @@ Whisper of the Sea Resort & Spa`
     setBookingSuccess(false);
     setActivePage('booking');
   };
+
+  const [dynamicOfferings, setDynamicOfferings] = useState<any[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('hotel_offerings');
+    if (stored) {
+      setDynamicOfferings(JSON.parse(stored));
+    }
+  }, [activePage]);
+
+  const rooms = dynamicOfferings.filter(o => o.type === 'Room');
+  const displayRooms = rooms.length > 0 ? rooms : [
+    { title: "Superior Room", description: "Spacious rooms with modern amenities for a relaxing stay.", image: "img 1.jpg" },
+    { title: "Deluxe Room", description: "Comfortable Stay designed for a pleasant and peaceful stay.", image: "img 2.jpg" },
+    { title: "Suite Room", description: "Spacious suites with elegant ambiance and premium comfort.", image: "img 3.jpg" },
+    { title: "Signature Ocean Suite", description: "Panoramic oceanic views paired with bespoke mid-century modular interiors.", image: "img 4.jpg" },
+    { title: "Whispering Waves Haven", description: "A custom beach-level sanctuary featuring a private path to raw sand shores.", image: "img 5.jpg" },
+    { title: "Sanctuary Penthouse", description: "The absolute pinnacle of resort luxury, offering panoramic rooftop ocean vistas.", image: "img 6.jpg" }
+  ].map(r => ({ ...r, description: r.description })); // Aligning structure
 
   return (
     <div className="min-h-screen bg-[#1C1C1C] text-white font-sans selection:bg-[#addfac] selection:text-black scroll-smooth">
@@ -483,16 +542,26 @@ Whisper of the Sea Resort & Spa`
             </div>
 
             <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 text-center">
-              {[
-                { icon: <Shield className="w-6 h-6 mx-auto text-[#addfac]" />, title: "Hotel Security" },
-                { icon: <Wifi className="w-6 h-6 mx-auto text-[#addfac]" />, title: "Speed Internet" },
-                { icon: <Sparkles className="w-6 h-6 mx-auto text-[#addfac]" />, title: "Smart Lock" },
-                { icon: <Coffee className="w-6 h-6 mx-auto text-[#addfac]" />, title: "Gym Center" },
-                { icon: <Utensils className="w-6 h-6 mx-auto text-[#addfac]" />, title: "Breakfast" },
-                { icon: <Waves className="w-6 h-6 mx-auto text-[#addfac]" />, title: "Swimming Pool" }
-              ].map((service, index) => (
+              {(dynamicOfferings.filter(o => o.type === 'Service').length > 0 
+                ? dynamicOfferings.filter(o => o.type === 'Service')
+                : [
+                    { title: "Hotel Security", icon: "Shield" },
+                    { title: "Speed Internet", icon: "Wifi" },
+                    { title: "Smart Lock", icon: "Sparkles" },
+                    { title: "Gym Center", icon: "Coffee" },
+                    { title: "Breakfast", icon: "Utensils" },
+                    { title: "Swimming Pool", icon: "Waves" }
+                  ]
+              ).map((service, index) => (
                 <div key={index} className="p-6 rounded-lg bg-[#242424]/40 border border-stone-800/60 hover:border-[#addfac]/40 transition-colors group">
-                  <div className="mb-3 transform group-hover:scale-110 transition-transform">{service.icon}</div>
+                  <div className="mb-3 transform group-hover:scale-110 transition-transform flex justify-center text-[#addfac]">
+                     {service.icon === 'Shield' && <Shield className="w-6 h-6" />}
+                     {service.icon === 'Wifi' && <Wifi className="w-6 h-6" />}
+                     {service.icon === 'Sparkles' && <Sparkles className="w-6 h-6" />}
+                     {service.icon === 'Coffee' && <Coffee className="w-6 h-6" />}
+                     {service.icon === 'Utensils' && <Utensils className="w-6 h-6" />}
+                     {service.icon === 'Waves' && <Waves className="w-6 h-6" />}
+                  </div>
                   <span className="text-xs uppercase font-medium tracking-wider text-stone-300 block">{service.title}</span>
                 </div>
               ))}
@@ -576,18 +645,11 @@ Whisper of the Sea Resort & Spa`
           {/* ROOM GRID VIEW */}
           <section className="max-w-7xl mx-auto px-6 py-12">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
-              {[
-                { title: "Superior Room", desc: "Spacious rooms with modern amenities for a relaxing stay.", img: "img 1.jpg" },
-                { title: "Deluxe Room", desc: "Comfortable Stay designed for a pleasant and peaceful stay.", img: "img 2.jpg" },
-                { title: "Suite Room", desc: "Spacious suites with elegant ambiance and premium comfort.", img: "img 3.jpg" },
-                { title: "Signature Ocean Suite", desc: "Panoramic oceanic views paired with bespoke mid-century modular interiors.", img: "img 4.jpg" },
-                { title: "Whispering Waves Haven", desc: "A custom beach-level sanctuary featuring a private path to raw sand shores.", img: "img 5.jpg" },
-                { title: "Sanctuary Penthouse", desc: "The absolute pinnacle of resort luxury, offering panoramic rooftop ocean vistas.", img: "img 6.jpg" }
-              ].map((room, idx) => (
+              {displayRooms.map((room, idx) => (
                 <div key={idx} className="space-y-5 group">
                   <div className="relative rounded-2xl overflow-hidden border border-stone-900 shadow-2xl aspect-[1.22/1]">
                     <img 
-                      src={room.img} 
+                      src={room.image} 
                       alt={room.title} 
                       className="w-full h-full object-cover brightness-90 group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
@@ -599,8 +661,11 @@ Whisper of the Sea Resort & Spa`
                       {room.title}
                     </h3>
                     <p className="text-sm text-stone-400 font-light max-w-sm mx-auto leading-relaxed">
-                      {room.desc}
+                      {room.description}
                     </p>
+                    {room.price && (
+                      <p className="text-[#addfac] font-bold text-sm tracking-widest">{room.price} / Night</p>
+                    )}
                     <div className="pt-2">
                       <button 
                         onClick={() => handleRoomSelection(room.title)}
@@ -842,7 +907,9 @@ Whisper of the Sea Resort & Spa`
                         {isSendingEmail ? (
                           <span className="flex items-center gap-2">
                             <span className="w-2 h-2 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-                            TRANSMITTING
+                            {emailStatus === 'auth' ? 'AUTHENTICATING' : 
+                             emailStatus === 'encrypt' ? 'ENCRYPTING' : 
+                             emailStatus === 'deliver' ? 'DELIVERING' : 'TRANSMITTING'}
                           </span>
                         ) : emailSent ? 'SENT' : 'TRANSMIT'}
                       </div>

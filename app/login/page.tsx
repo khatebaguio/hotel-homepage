@@ -89,18 +89,92 @@ export default function AuthPage() {
     }
 
     if (isSignUp) {
-      // Sign up success - Switch to login view instead of proceeding to dashboard
+      // Sign up success - Save to admin_users for admin visibility
+      try {
+        const currentUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+        const newUser = {
+          id: Date.now(),
+          name: name,
+          email: email,
+          role: 'Guest',
+          status: 'Active',
+          joined: new Date().toISOString().split('T')[0]
+        };
+        localStorage.setItem('admin_users', JSON.stringify([...currentUsers, newUser]));
+      } catch (e) {
+        console.error('Failed to save to admin_users', e);
+      }
+
       setSuccessMessage("Account created successfully! Please sign in.");
       setIsSignUp(false);
       setPassword("");
       setConfirmPassword("");
     } else {
-      // Login success - Save to localStorage for simple persistence
-      const userData = { name, email };
-      localStorage.setItem("user", JSON.stringify(userData));
+      // Login success logic
+      try {
+        let adminUsers = JSON.parse(localStorage.getItem('admin_users') || '[]');
+        
+        // Initialize defaults if empty
+        if (adminUsers.length === 0) {
+          adminUsers = [
+            { id: 1, name: 'Admin User', email: 'admin@whisper.sea', role: 'Admin', status: 'Active', joined: '2023-05-12' },
+            { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Staff', status: 'Active', joined: '2023-06-20' },
+            { id: 3, name: 'Robert Johnson', email: 'robert@test.com', role: 'Guest', status: 'Inactive', joined: '2023-08-15' },
+          ];
+        }
+
+        const userIndex = adminUsers.findIndex((u: any) => u.email === email);
+        const loginTime = new Date().toLocaleString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+
+        let finalName = name; // Fallback to form state (usually empty on login)
+
+        if (userIndex !== -1) {
+          // User exists - update activity and get their saved name
+          adminUsers[userIndex] = {
+            ...adminUsers[userIndex],
+            loginCount: (adminUsers[userIndex].loginCount || 0) + 1,
+            lastLogin: loginTime
+          };
+          finalName = adminUsers[userIndex].name;
+        } else {
+          // User doesn't exist - create new record
+          finalName = name || email.split('@')[0];
+          adminUsers.push({
+            id: Date.now(),
+            name: finalName,
+            email: email,
+            role: 'Guest',
+            status: 'Active',
+            joined: new Date().toISOString().split('T')[0],
+            loginCount: 1,
+            lastLogin: loginTime
+          });
+        }
+
+        // Save updated users list
+        localStorage.setItem('admin_users', JSON.stringify(adminUsers));
+
+        // Save session user with the CORRECT name
+        localStorage.setItem("user", JSON.stringify({ name: finalName, email }));
+
+      } catch (e) {
+        console.error('Login synchronization failed', e);
+        // Fallback session save if something crashes
+        localStorage.setItem("user", JSON.stringify({ name: name || email.split('@')[0], email }));
+      }
       
-      // Redirect to home
-      router.push("/");
+      // Redirect to admin if email is admin@whisper.sea
+      if (email === "admin@whisper.sea") {
+        router.push("/admin");
+      } else {
+        // Redirect to home
+        router.push("/");
+      }
     }
   };
 
@@ -144,6 +218,10 @@ export default function AuthPage() {
               <button
                 onClick={() => {
                   setIsSignUp(false);
+                  setEmail("");
+                  setPassword("");
+                  setConfirmPassword("");
+                  setName("");
                   setError("");
                   setSuccessMessage("");
                 }}
@@ -166,6 +244,10 @@ export default function AuthPage() {
               <button
                 onClick={() => {
                   setIsSignUp(true);
+                  setEmail("");
+                  setPassword("");
+                  setConfirmPassword("");
+                  setName("");
                   setError("");
                   setSuccessMessage("");
                 }}
@@ -293,7 +375,7 @@ export default function AuthPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-600 hover:text-[#addfac] transition-colors"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -302,13 +384,22 @@ export default function AuthPage() {
                 {isSignUp && (
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium block ml-1">Confirm Password</label>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full rounded-xl bg-[#1C1C1C]/50 border border-stone-800 py-3.5 px-5 text-sm text-stone-200 outline-none transition-all placeholder:text-stone-600 focus:border-[#addfac]/50 focus:ring-1 focus:ring-[#addfac]/20"
-                    />
+                    <div className="relative group">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full rounded-xl bg-[#1C1C1C]/50 border border-stone-800 py-3.5 px-5 pr-12 text-sm text-stone-200 outline-none transition-all placeholder:text-stone-600 focus:border-[#addfac]/50 focus:ring-1 focus:ring-[#addfac]/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-600 hover:text-[#addfac] transition-colors"
+                      >
+                        {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -352,6 +443,10 @@ export default function AuthPage() {
                 <button
                   onClick={() => {
                     setIsSignUp(!isSignUp);
+                    setEmail("");
+                    setPassword("");
+                    setConfirmPassword("");
+                    setName("");
                     setError("");
                     setSuccessMessage("");
                   }}
