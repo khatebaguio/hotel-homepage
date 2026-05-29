@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Sparkles,
   Utensils,
@@ -16,18 +17,296 @@ import {
   Store,
   MessageSquare
 } from 'lucide-react';
+import HomeView from './components/Homepage';
 
 export default function HotelReservationPage() {
-
+  const router = useRouter();
   const [activePage, setActivePage] = useState<
     'home' | 'about' | 'rooms' | 'contact' | 'booking'
   >('home');
 
+  // Authentication check
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (!user) {
+      router.push('/login');
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
   // FIXED ERROR
   const [bookingStep, setBookingStep] = useState(1);
+  const [bookingData, setBookingData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    country: 'Philippines',
+    idType: 'Passport',
+    checkIn: '',
+    checkOut: '',
+    guests: '1 Guest',
+    roomType: 'Deluxe Room',
+    paymentMethod: '',
+    paymentName: '',
+    paymentNumber: '',
+    receiptId: '',
+    receiptDate: ''
+  });
+  const [bookingError, setBookingError] = useState('');
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'auth' | 'encrypt' | 'deliver' | 'sent'>('idle');
+  const [showFullAbout, setShowFullAbout] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [contactData, setContactData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [contactError, setContactError] = useState('');
+  const [contactSuccess, setContactSuccess] = useState(false);
+
+  const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setContactData(prev => ({ ...prev, [name]: value }));
+    setContactError('');
+    setContactSuccess(false);
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactError('');
+    setContactSuccess(false);
+
+    const { name, email, subject, message } = contactData;
+    if (!name || !email || !subject || !message) {
+      setContactError('Please fill in all fields before sending your message.');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setContactError('Please enter a valid email address.');
+      return;
+    }
+
+    // Success simulation
+    setContactSuccess(true);
+    setContactData({
+      name: '',
+      email: '',
+      subject: '',
+      message: ''
+    });
+    
+    // Auto-hide success message after 5 seconds
+    setTimeout(() => setContactSuccess(false), 5000);
+  };
+
+  const handleBookingChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setBookingData(prev => ({ ...prev, [name]: value }));
+    setBookingError('');
+  };
+
+  const handleSendEmail = () => {
+    setIsSendingEmail(true);
+    
+    // Constructing the professional email body
+    const subject = encodeURIComponent(`CONFIRMED: Reservation Receipt #${bookingData.receiptId} - Whisper of the Sea`);
+    const body = encodeURIComponent(
+`WHISPER OF THE SEA RESORT
+Official Reservation Receipt
+===========================================
+Receipt ID: ${bookingData.receiptId}
+Issued on: ${bookingData.receiptDate}
+===========================================
+
+Dear ${bookingData.firstName} ${bookingData.lastName},
+
+Your sanctuary has been successfully reserved. Below is your high-fidelity booking summary:
+
+GUEST PROFILE:
+--------------
+- Full Name: ${bookingData.firstName} ${bookingData.lastName}
+- Contact Number: ${bookingData.phone}
+- Email Address: ${bookingData.email}
+- Address: ${bookingData.address}, ${bookingData.country}
+
+ACCOMMODATION DETAILS:
+----------------------
+- Reserved Suite: ${bookingData.roomType}
+- Guest Count: ${bookingData.guests}
+- Check-In: ${bookingData.checkIn}
+- Check-Out: ${bookingData.checkOut}
+
+PAYMENT SUMMARY:
+----------------
+- Method: ${bookingData.paymentMethod}
+${bookingData.paymentMethod !== 'Cash' ? `- Account Holder: ${bookingData.paymentName}\n- Account Reference: ${bookingData.paymentNumber}` : '- Settlement: Pay upon arrival'}
+
+STATUS: RESERVATION CONFIRMED & PENDING ARRIVAL
+
+-------------------------------------------
+IMPORTANT: Please present this digital or printed receipt to the concierge upon check-in.
+
+We look forward to welcoming you to the whispering soul of the Pacific coast.
+
+Stay Elegantly,
+The Sanctuary Team
+Whisper of the Sea Resort & Spa`
+    );
+
+    // Simulation of server transmission
+    setTimeout(() => {
+      setIsSendingEmail(false);
+      setEmailSent(true);
+      // Trigger the manual send via mail client
+      window.location.href = `mailto:${bookingData.email}?subject=${subject}&body=${body}`;
+    }, 1200);
+  };
+
+  const validateStep1 = () => {
+    const { firstName, lastName, email, phone, address } = bookingData;
+    if (!firstName || !lastName || !email || !phone || !address) {
+      setBookingError('Please fill in all guest information details.');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    const { checkIn, checkOut } = bookingData;
+    if (!checkIn || !checkOut) {
+      setBookingError('Please select both check-in and check-out dates.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleConfirmBooking = () => {
+    if (!bookingData.paymentMethod) {
+      setBookingError('Please select a payment method.');
+      return;
+    }
+
+    if (bookingData.paymentMethod !== 'Cash') {
+      if (!bookingData.paymentName || !bookingData.paymentNumber) {
+        setBookingError(`Please provide your ${bookingData.paymentMethod} account name and number.`);
+        return;
+      }
+    }
+
+    // Generate Receipt ID and Date
+    const rId = "WOS-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const rDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    setBookingData(prev => ({ 
+      ...prev, 
+      receiptId: rId,
+      receiptDate: rDate
+    }));
+
+    // Functional booking confirmation
+    setBookingSuccess(true);
+    // In a real app, you'd send this to an API
+    console.log('Booking Confirmed:', { ...bookingData, receiptId: rId, receiptDate: rDate });
+  };
+
+  const resetBooking = () => {
+    setBookingStep(1);
+    setBookingData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      address: '',
+      country: 'Philippines',
+      idType: 'Passport',
+      checkIn: '',
+      checkOut: '',
+      guests: '1 Guest',
+      roomType: 'Deluxe Room',
+      paymentMethod: '',
+      paymentName: '',
+      paymentNumber: '',
+      receiptId: '',
+      receiptDate: ''
+    });
+    setBookingError('');
+    setBookingSuccess(false);
+    setActivePage('rooms');
+  };
+
+  const handleRoomSelection = (roomTitle: string) => {
+    setBookingData(prev => ({ ...prev, roomType: roomTitle }));
+    setBookingStep(1);
+    setBookingError('');
+    setBookingSuccess(false);
+    setActivePage('booking');
+  };
 
   return (
     <div className="min-h-screen bg-[#1C1C1C] text-white font-sans selection:bg-[#addfac] selection:text-black scroll-smooth">
+
+      {/* LOGOUT CONFIRMATION MODAL */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowLogoutConfirm(false)}
+          ></div>
+          
+          {/* Modal Content */}
+          <div className="relative bg-[#242424] border border-stone-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 text-center">
+            <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Mail className="w-8 h-8 rotate-12" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-2xl font-serif italic text-white">Leaving So Soon?</h3>
+              <p className="text-stone-400 text-sm leading-relaxed">
+                Are you sure you want to log out of your sanctuary session? Any unsaved booking progress may be lost.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2">
+              <button
+                onClick={confirmLogout}
+                className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95"
+              >
+                Yes, Log Out
+              </button>
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full bg-stone-800 hover:bg-stone-700 text-stone-300 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+              >
+                Stay In Sanctuary
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HEADER */}
       <header className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center relative z-50">
@@ -102,7 +381,9 @@ export default function HotelReservationPage() {
 
         </nav>
 
-        <button className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black text-xs px-5 py-2.5 rounded font-semibold">
+        <button 
+          onClick={handleLogout}
+          className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black text-xs px-5 py-2.5 rounded font-semibold">
           Log Out
         </button>
 
@@ -110,74 +391,7 @@ export default function HotelReservationPage() {
 
       {/* --- PAGE CONDITIONAL RENDERING --- */}
       {activePage === 'home' && (
-        <>
-          {/* HERO SECTION */}
-          <section className="relative max-w-7xl mx-auto px-6 pt-12 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-6 space-y-8 z-10">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif italic text-stone-100 leading-tight">
-                Transform Your Stay <br />
-                <span className="not-italic font-sans font-light text-[#addfac]">Into Timeless Luxury</span>
-              </h1>
-              <div className="flex items-center gap-4 pt-4">
-                <button 
-                  onClick={() => setActivePage('booking')}
-                  className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-[#addfac] text-black font-semibold text-sm px-6 py-3 rounded shadow-xl hover:brightness-110 transition-all"
-                >
-                 Book Now! <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-6 relative w-full h-[400px] md:h-[480px] rounded-lg overflow-hidden border border-stone-800 shadow-2xl">
-              <img 
-                src="pic 1.jpg" 
-                alt="Whisper of the Sea Resort Pool Overlooking Ocean" 
-                className="w-full h-full object-cover brightness-90 saturate-[0.85]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1C1C1C] via-transparent to-transparent"></div>
-              <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#addfac]/10 blur-[100px] rounded-full pointer-events-none"></div>
-            </div>
-          </section>
-
-          {/* ACCOMMODATIONS PREVIEW SECTION */}
-          <section className="max-w-7xl mx-auto px-6 py-16 text-center">
-            <div className="flex items-center justify-center gap-4 mb-12">
-              <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#addfac]/50"></div>
-              <h2 className="text-xl md:text-2xl font-serif text-[#addfac] tracking-wide">Featured Accommodations</h2>
-              <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[#addfac]/50"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { title: "Deluxe Ocean Room", sub: "Modern Elegance", img: "pic 2.jpg" },
-                { title: "Whispering Waves Suite", sub: "Minimal & Functional Space", img: "pic 3.jpg" },
-                { title: "Sanctuary Ocean Villa", sub: "Comfort & Ultimate Style", img: "pic 4.jpg" }
-              ].map((suite, idx) => (
-                <div key={idx} className="relative rounded-lg overflow-hidden group border border-stone-900 shadow-xl aspect-[4/5]">
-                  <img 
-                    src={suite.img} 
-                    alt={suite.title} 
-                    className="w-full h-full object-cover brightness-75 group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                  
-                  <div className="absolute bottom-6 left-0 right-0 px-4 space-y-1">
-                    <h3 className="text-lg font-serif text-stone-100 tracking-wide">{suite.title}</h3>
-                    <p className="text-xs text-[#addfac]/80 italic font-light tracking-wide">{suite.sub}</p>
-                    <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button 
-                        onClick={() => setActivePage('booking')}
-                        className="text-[10px] uppercase tracking-widest text-white border-b border-[#addfac] pb-0.5"
-                      >
-                        Book Now!
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
+        <HomeView setActivePage={setActivePage} />
       )}
       
       {/* --- STANDALONE ABOUT US VIEW --- */}
@@ -221,11 +435,41 @@ export default function HotelReservationPage() {
               <p className="text-sm text-stone-400 leading-relaxed">
                 Whisper of the Sea Hotel & Resort introduces a brand-new definition of eco-elegance. Nestled seamlessly along the raw Pacific coastline, we combine state-of-the-art modular comfort architecture with high-fidelity hospitality.
               </p>
+              
+              {showFullAbout && (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="space-y-2">
+                    <h4 className="text-[#addfac] text-xs font-bold uppercase tracking-widest">Our Heritage</h4>
+                    <p className="text-xs text-stone-500 leading-relaxed">
+                      Founded in 2012 by a collective of avant-garde architects and environmentalists, Whisper of the Sea was born from a vision to create a sanctuary that breathes with the ocean. What began as a single modular prototype has evolved into California's premier coastal escape.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-[#addfac] text-xs font-bold uppercase tracking-widest">Modular Innovation</h4>
+                    <p className="text-xs text-stone-500 leading-relaxed">
+                      Our "Lego-Luxury" approach allows us to place high-end suites on rugged cliff-sides with minimal site disruption. Each unit is pre-crafted with sustainable mahogany and floor-to-ceiling smart glass, then seamlessly integrated into the natural contours of the Pacific shelf.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-[#addfac] text-xs font-bold uppercase tracking-widest">Sustainable Sanctuary</h4>
+                    <p className="text-xs text-stone-500 leading-relaxed">
+                      We operate on a 100% renewable grid. From our solar-kinetic energy harvesting to our circular water filtration systems, your stay contributes to the preservation of the very coastline you come to admire. Silence, luxury, and responsibility coexist here.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="p-5 border-l-2 border-[#addfac] bg-stone-900/30 text-stone-300 italic text-sm rounded-r-md">
                 "Our philosophy is simple: complete harmony with nature without altering the definition of pristine luxury."
               </div>
-              <button className="bg-[#addfac] text-black font-semibold text-xs px-6 py-3 rounded uppercase tracking-wider hover:bg-opacity-90 transition-all">
-                Read More
+              
+              <button 
+                onClick={() => setShowFullAbout(!showFullAbout)}
+                className="bg-[#addfac] text-black font-semibold text-xs px-8 py-3 rounded-full uppercase tracking-wider hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-[#addfac]/10"
+              >
+                {showFullAbout ? 'Show Less' : 'Read More'}
               </button>
             </div>
           </section>
@@ -265,13 +509,13 @@ export default function HotelReservationPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12 justify-center">
               {[
-                { name: "Julian Sterling", role: "General Manager", img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400" },
-                { name: "Elena Rostova", role: "Head Concierge", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400" },
-                { name: "Marcus Vance", role: "Executive Chef", img: "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=400" },
-                { name: "Amara Okoro", role: "Guest Relations", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400" },
-                { name: "Sylvia Thorne", role: "Spa & Wellness Director", img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400" },
-                { name: "David Kim", role: "Operations Lead", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400" },
-                { name: "Nathan Cross", role: "Sommelier", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400" }
+                { name: "Khate Charmille", role: "General Manager", img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400" },
+                { name: "Shane Garey Gales", role: "Head Concierge", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400" },
+                { name: "Lhorelyn Dalaguit", role: "Executive Chef", img: "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=400" },
+                { name: "Roche Mae Salvaloza", role: "Guest Relations", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400" },
+                { name: "Katrine Matedios", role: "Spa & Wellness Director", img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400" },
+                { name: "Honeylyn Regulacion", role: "Operations Lead", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400" },
+                { name: "James Patrick Inoc", role: "Sommelier", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400" }
               ].map((member, index) => (
                 <div key={index} className="space-y-4 group">
                   <div className="w-full aspect-[3/4] rounded-t-full overflow-hidden border border-stone-800 shadow-xl relative bg-stone-900">
@@ -358,7 +602,10 @@ export default function HotelReservationPage() {
                       {room.desc}
                     </p>
                     <div className="pt-2">
-                      <button className="text-xs uppercase tracking-widest font-semibold border-b border-[#addfac]/40 hover:border-[#addfac] text-stone-200 hover:text-white transition-all pb-1">
+                      <button 
+                        onClick={() => handleRoomSelection(room.title)}
+                        className="text-xs uppercase tracking-widest font-semibold border-b border-[#addfac]/40 hover:border-[#addfac] text-stone-200 hover:text-white transition-all pb-1"
+                      >
                         Reserve Sanctuary
                       </button>
                     </div>
@@ -494,269 +741,484 @@ export default function HotelReservationPage() {
         {/* PAGE CONTENT */}
         <div className="p-8 md:p-12 space-y-10">
 
-          {/* ================= STEP 1 ================= */}
-          {bookingStep === 1 && (
+          {bookingSuccess ? (
+            <div className="max-w-2xl mx-auto py-10 animate-fadeIn">
+              <div className="bg-stone-900 border border-[#addfac]/30 rounded-3xl overflow-hidden shadow-2xl relative">
+                
+                {/* Receipt Header */}
+                <div className="bg-gradient-to-r from-teal-900/40 to-[#addfac]/10 p-8 text-center border-b border-stone-800">
+                  <div className="w-16 h-16 bg-[#addfac]/20 text-[#addfac] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-3xl font-serif italic text-white tracking-wide">Reservation Receipt</h2>
+                  <p className="text-[#addfac] text-[10px] uppercase tracking-[0.2em] mt-1 font-semibold">Whisper of the Sea Resort</p>
+                  
+                  <div className="mt-4 flex flex-col items-center gap-1">
+                    <span className="text-[10px] uppercase tracking-widest text-stone-500">Receipt ID: {bookingData.receiptId}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-stone-500">Confirmed on: {bookingData.receiptDate}</span>
+                  </div>
+                </div>
+
+                {/* Receipt Body */}
+                <div className="p-8 space-y-8">
+                  
+                  {/* Guest Info */}
+                  <div className="grid grid-cols-2 gap-8 border-b border-stone-800/50 pb-8">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-widest text-stone-500 block">Guest Name</span>
+                      <p className="text-sm text-stone-200 font-medium">{bookingData.firstName} {bookingData.lastName}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <span className="text-[10px] uppercase tracking-widest text-stone-500 block">Contact</span>
+                      <p className="text-sm text-stone-200 font-medium">{bookingData.phone}</p>
+                      <p className="text-[11px] text-stone-400">{bookingData.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Booking Details */}
+                  <div className="space-y-6 border-b border-stone-800/50 pb-8">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-widest text-stone-500 block">Accommodation</span>
+                        <p className="text-base text-[#addfac] font-serif italic">{bookingData.roomType}</p>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <span className="text-[10px] uppercase tracking-widest text-stone-500 block">Guests</span>
+                        <p className="text-sm text-stone-200 font-medium">{bookingData.guests}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8">
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-widest text-stone-500 block">Check-In</span>
+                        <p className="text-sm text-stone-200 font-medium">{bookingData.checkIn}</p>
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <span className="text-[10px] uppercase tracking-widest text-stone-500 block">Check-Out</span>
+                        <p className="text-sm text-stone-200 font-medium">{bookingData.checkOut}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Summary */}
+                  <div className="bg-[#1C1C1C]/50 rounded-2xl p-6 space-y-4">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-stone-400 uppercase tracking-widest">Payment Method</span>
+                      <span className="text-stone-200 font-semibold uppercase">{bookingData.paymentMethod}</span>
+                    </div>
+                    {bookingData.paymentMethod !== 'Cash' && (
+                      <div className="flex justify-between items-center text-xs pt-2 border-t border-stone-800">
+                        <span className="text-stone-400 uppercase tracking-widest">Account Name</span>
+                        <span className="text-stone-200">{bookingData.paymentName}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-4 border-t border-stone-800 text-[#addfac]">
+                      <span className="text-xs uppercase tracking-[0.3em] font-bold">Total Status</span>
+                      <span className="text-sm font-bold uppercase tracking-widest">Confirmed & Pending</span>
+                    </div>
+                  </div>
+
+                  {/* DELIVERY OPTION BAR */}
+                  <div className="space-y-3">
+                    <span className="text-[10px] uppercase tracking-widest text-stone-500 font-semibold ml-1">Delivery Channel</span>
+                    <button 
+                      onClick={handleSendEmail}
+                      disabled={isSendingEmail}
+                      className={`w-full flex items-center justify-between bg-[#1C1C1C] border ${emailSent ? 'border-emerald-500/50' : 'border-stone-800 hover:border-[#addfac]/50'} rounded-2xl p-4 group transition-all active:scale-[0.99]`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${emailSent ? 'bg-emerald-500/20 text-emerald-500' : 'bg-stone-900 text-stone-400 group-hover:text-[#addfac]'}`}>
+                          <Mail className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <p className={`text-xs font-bold tracking-wide uppercase ${emailSent ? 'text-emerald-400' : 'text-stone-200'}`}>
+                            {emailSent ? 'Transmitted to Gmail' : 'Send to Gmail Inbox'}
+                          </p>
+                          <p className="text-[10px] text-stone-500 font-medium">{bookingData.email}</p>
+                        </div>
+                      </div>
+                      
+                      <div className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${emailSent ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[#addfac] text-black hover:brightness-110'}`}>
+                        {isSendingEmail ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                            TRANSMITTING
+                          </span>
+                        ) : emailSent ? 'SENT' : 'TRANSMIT'}
+                      </div>
+                    </button>
+                    
+                    {!emailSent && !isSendingEmail && (
+                      <p className="text-[10px] text-stone-600 italic px-1">
+                        * Clicking Transmit will automatically prepare your high-fidelity receipt draft.
+                      </p>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Receipt Footer */}
+                <div className="p-8 pt-0 text-center">
+                  <button
+                    onClick={resetBooking}
+                    className="w-full border border-stone-800 text-stone-400 py-4 rounded-xl font-bold uppercase tracking-[0.2em] text-xs hover:bg-stone-800 hover:text-white transition-all"
+                  >
+                    Return to Reserve Sanctuary
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
             <>
-              <div>
-                <h2 className="text-3xl font-serif text-white">
-                  Guest Information
-                </h2>
-
-                <p className="text-stone-400 text-sm mt-3 leading-relaxed">
-                  Please provide your complete personal information for your
-                  reservation confirmation.
-                </p>
-              </div>
-
-              {/* FORM GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    First Name
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="John"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
-                  />
+              {bookingError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm font-medium animate-pulse">
+                  {bookingError}
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Last Name
-                  </label>
+              {/* ================= STEP 1 ================= */}
+              {bookingStep === 1 && (
+                <>
+                  <div>
+                    <h2 className="text-3xl font-serif text-white">
+                      Guest Information
+                    </h2>
 
-                  <input
-                    type="text"
-                    placeholder="Doe"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
-                  />
-                </div>
+                    <p className="text-stone-400 text-sm mt-3 leading-relaxed">
+                      Please provide your complete personal information for your
+                      reservation confirmation.
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Email Address
-                  </label>
+                  {/* FORM GRID */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                  <input
-                    type="email"
-                    placeholder="example@gmail.com"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        First Name
+                      </label>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Phone Number
-                  </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={bookingData.firstName}
+                        onChange={handleBookingChange}
+                        placeholder="John"
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                      />
+                    </div>
 
-                  <input
-                    type="text"
-                    placeholder="+63 9123456789"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Last Name
+                      </label>
 
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Complete Address
-                  </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={bookingData.lastName}
+                        onChange={handleBookingChange}
+                        placeholder="Doe"
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                      />
+                    </div>
 
-                  <input
-                    type="text"
-                    placeholder="Street Address"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Email Address
+                      </label>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Country
-                  </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={bookingData.email}
+                        onChange={handleBookingChange}
+                        placeholder="example@gmail.com"
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                      />
+                    </div>
 
-                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
-                    <option>Philippines</option>
-                    <option>United States</option>
-                    <option>Canada</option>
-                    <option>Japan</option>
-                  </select>
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Phone Number
+                      </label>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Valid ID Type
-                  </label>
+                      <input
+                        type="text"
+                        name="phone"
+                        value={bookingData.phone}
+                        onChange={handleBookingChange}
+                        placeholder="+63 9123456789"
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                      />
+                    </div>
 
-                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
-                    <option>Passport</option>
-                    <option>Driver License</option>
-                    <option>National ID</option>
-                  </select>
-                </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Complete Address
+                      </label>
 
-              </div>
+                      <input
+                        type="text"
+                        name="address"
+                        value={bookingData.address}
+                        onChange={handleBookingChange}
+                        placeholder="Street Address"
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                      />
+                    </div>
 
-              {/* NEXT BUTTON */}
-              <div className="flex justify-end pt-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Country
+                      </label>
 
-                <button
-                  onClick={() => setBookingStep(2)}
-                  className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
-                >
-                  Continue Reservation
-                </button>
+                      <select 
+                        name="country"
+                        value={bookingData.country}
+                        onChange={handleBookingChange}
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                      >
+                        <option>Philippines</option>
+                        <option>United States</option>
+                        <option>Canada</option>
+                        <option>Japan</option>
+                      </select>
+                    </div>
 
-              </div>
-            </>
-          )}
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Valid ID Type
+                      </label>
 
-          {/* ================= STEP 2 ================= */}
-          {bookingStep === 2 && (
-            <>
-              <div>
-                <h2 className="text-3xl font-serif text-white">
-                  Room Reservation
-                </h2>
+                      <select 
+                        name="idType"
+                        value={bookingData.idType}
+                        onChange={handleBookingChange}
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                      >
+                        <option>Passport</option>
+                        <option>Driver License</option>
+                        <option>National ID</option>
+                      </select>
+                    </div>
 
-                <p className="text-stone-400 text-sm mt-3 leading-relaxed">
-                  Select your booking schedule and room preferences.
-                </p>
-              </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* NEXT BUTTON */}
+                  <div className="flex justify-end pt-4">
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Check In
-                  </label>
+                    <button
+                      onClick={() => validateStep1() && setBookingStep(2)}
+                      className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
+                    >
+                      Continue Reservation
+                    </button>
 
-                  <input
-                    type="date"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
-                  />
-                </div>
+                  </div>
+                </>
+              )}
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Check Out
-                  </label>
+              {/* ================= STEP 2 ================= */}
+              {bookingStep === 2 && (
+                <>
+                  <div>
+                    <h2 className="text-3xl font-serif text-white">
+                      Room Reservation
+                    </h2>
 
-                  <input
-                    type="date"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
-                  />
-                </div>
+                    <p className="text-stone-400 text-sm mt-3 leading-relaxed">
+                      Select your booking schedule and room preferences.
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Guests
-                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
-                    <option>1 Guest</option>
-                    <option>2 Guests</option>
-                    <option>3 Guests</option>
-                    <option>4 Guests</option>
-                  </select>
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Check In
+                      </label>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Room Type
-                  </label>
+                      <input
+                        type="date"
+                        name="checkIn"
+                        value={bookingData.checkIn}
+                        onChange={handleBookingChange}
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                      />
+                    </div>
 
-                  <select className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]">
-                    <option>Deluxe Room</option>
-                    <option>Executive Suite</option>
-                    <option>Presidential Suite</option>
-                  </select>
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Check Out
+                      </label>
 
-              </div>
+                      <input
+                        type="date"
+                        name="checkOut"
+                        value={bookingData.checkOut}
+                        onChange={handleBookingChange}
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                      />
+                    </div>
 
-              {/* BUTTONS */}
-              <div className="flex items-center justify-between pt-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Guests
+                      </label>
 
-                <button
-                  onClick={() => setBookingStep(1)}
-                  className="border border-stone-700 px-8 py-4 rounded-xl uppercase tracking-widest hover:bg-stone-800 transition"
-                >
-                  Previous
-                </button>
+                      <select 
+                        name="guests"
+                        value={bookingData.guests}
+                        onChange={handleBookingChange}
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                      >
+                        <option>1 Guest</option>
+                        <option>2 Guests</option>
+                        <option>3 Guests</option>
+                        <option>4 Guests</option>
+                      </select>
+                    </div>
 
-                <button
-                  onClick={() => setBookingStep(3)}
-                  className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
-                >
-                  Continue
-                </button>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Room Type
+                      </label>
 
-              </div>
-            </>
-          )}
+                      <select 
+                        name="roomType"
+                        value={bookingData.roomType}
+                        onChange={handleBookingChange}
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
+                      >
+                        <option>Deluxe Room</option>
+                        <option>Executive Suite</option>
+                        <option>Presidential Suite</option>
+                        <option>Superior Room</option>
+                        <option>Suite Room</option>
+                        <option>Signature Ocean Suite</option>
+                        <option>Whispering Waves Haven</option>
+                        <option>Sanctuary Penthouse</option>
+                      </select>
+                    </div>
 
-          {/* ================= STEP 3 ================= */}
-          {bookingStep === 3 && (
-            <>
-              <div>
-                <h2 className="text-3xl font-serif text-white">
-                  Billing Payment
-                </h2>
+                  </div>
 
-                <p className="text-stone-400 text-sm mt-3 leading-relaxed">
-                  Complete your secure payment process.
-                </p>
-              </div>
+                  {/* BUTTONS */}
+                  <div className="flex items-center justify-between pt-4">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <button
+                      onClick={() => setBookingStep(1)}
+                      className="border border-stone-700 px-8 py-4 rounded-xl uppercase tracking-widest hover:bg-stone-800 transition text-stone-300"
+                    >
+                      Previous
+                    </button>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Card Holder Name
-                  </label>
+                    <button
+                      onClick={() => validateStep2() && setBookingStep(3)}
+                      className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
+                    >
+                      Continue
+                    </button>
 
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
-                  />
-                </div>
+                  </div>
+                </>
+              )}
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-widest text-stone-400">
-                    Card Number
-                  </label>
+              {/* ================= STEP 3 ================= */}
+              {bookingStep === 3 && (
+                <>
+                  <div>
+                    <h2 className="text-3xl font-serif text-white">
+                      Billing Payment
+                    </h2>
 
-                  <input
-                    type="text"
-                    placeholder="**
-**
-** 1234"
-                    className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac]"
-                  />
-                </div>
+                    <p className="text-stone-400 text-sm mt-3 leading-relaxed">
+                      Select your preferred payment method.
+                    </p>
+                  </div>
 
-              </div>
+                  <div className="space-y-8">
 
-              {/* BUTTONS */}
-              <div className="flex items-center justify-between pt-4">
+                    <div className="space-y-4">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Payment Method
+                      </label>
 
-                <button
-                  onClick={() => setBookingStep(2)}
-                  className="border border-stone-700 px-8 py-4 rounded-xl uppercase tracking-widest hover:bg-stone-800 transition"
-                >
-                  Previous
-                </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {['Bank', 'Cash', 'Gcash'].map((method) => (
+                          <button
+                            key={method}
+                            onClick={() => {
+                              setBookingData(prev => ({ ...prev, paymentMethod: method }));
+                              setBookingError('');
+                            }}
+                            className={`p-6 rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 ${
+                              bookingData.paymentMethod === method
+                                ? 'bg-[#addfac]/10 border-[#addfac] text-[#addfac]'
+                                : 'bg-[#1C1C1C] border-stone-800 text-stone-400 hover:border-[#addfac]/40'
+                            }`}
+                          >
+                            <span className="text-sm font-semibold uppercase tracking-widest">{method}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                <button
-                  className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-semibold uppercase tracking-widest hover:brightness-110 transition-all"
-                >
-                  Confirm Booking
-                </button>
+                    {/* Conditional Payment Details */}
+                    {bookingData.paymentMethod !== 'Cash' && bookingData.paymentMethod !== '' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                            {bookingData.paymentMethod} Account Name
+                          </label>
+                          <input
+                            type="text"
+                            name="paymentName"
+                            value={bookingData.paymentName}
+                            onChange={handleBookingChange}
+                            placeholder="Full Name"
+                            className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                            {bookingData.paymentMethod} Number
+                          </label>
+                          <input
+                            type="text"
+                            name="paymentNumber"
+                            value={bookingData.paymentNumber}
+                            onChange={handleBookingChange}
+                            placeholder="Account or Phone Number"
+                            className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                          />
+                        </div>
+                      </div>
+                    )}
 
-              </div>
+                  </div>
+
+                  {/* BUTTONS */}
+                  <div className="flex items-center justify-between pt-8">
+
+                    <button
+                      onClick={() => setBookingStep(2)}
+                      className="border border-stone-700 px-8 py-4 rounded-xl uppercase tracking-widest hover:bg-stone-800 transition text-stone-300"
+                    >
+                      Previous
+                    </button>
+
+                    <button
+                      onClick={handleConfirmBooking}
+                      className="bg-gradient-to-r from-teal-600 to-[#addfac] text-black px-10 py-4 rounded-xl font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-[#addfac]/10"
+                    >
+                      Confirm Booking
+                    </button>
+
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -855,12 +1317,28 @@ export default function HotelReservationPage() {
                 </p>
               </div>
 
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-4 pt-2">
+              {/* Feedback Messages */}
+              {contactError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs font-medium animate-pulse">
+                  {contactError}
+                </div>
+              )}
+              {contactSuccess && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-medium flex items-center gap-2 animate-fadeIn">
+                  <Sparkles className="w-4 h-4" />
+                  Your message has been sent to the sanctuary team. We will respond shortly.
+                </div>
+              )}
+
+              <form onSubmit={handleContactSubmit} className="space-y-4 pt-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium block">Your Name</label>
                     <input 
                       type="text" 
+                      name="name"
+                      value={contactData.name}
+                      onChange={handleContactChange}
                       placeholder="e.g. John Doe"
                       className="w-full bg-[#1C1C1C] border border-stone-800 focus:border-[#addfac]/60 rounded px-4 py-3 text-xs text-stone-200 placeholder-stone-600 outline-none transition-colors"
                     />
@@ -869,6 +1347,9 @@ export default function HotelReservationPage() {
                     <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium block">Email Address</label>
                     <input 
                       type="email" 
+                      name="email"
+                      value={contactData.email}
+                      onChange={handleContactChange}
                       placeholder="example@journal.com"
                       className="w-full bg-[#1C1C1C] border border-stone-800 focus:border-[#addfac]/60 rounded px-4 py-3 text-xs text-stone-200 placeholder-stone-600 outline-none transition-colors"
                     />
@@ -879,6 +1360,9 @@ export default function HotelReservationPage() {
                   <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium block">Subject Topic</label>
                   <input 
                     type="text" 
+                    name="subject"
+                    value={contactData.subject}
+                    onChange={handleContactChange}
                     placeholder="Reservation Inquiry / Special Arrangements"
                     className="w-full bg-[#1C1C1C] border border-stone-800 focus:border-[#addfac]/60 rounded px-4 py-3 text-xs text-stone-200 placeholder-stone-600 outline-none transition-colors"
                   />
@@ -888,13 +1372,19 @@ export default function HotelReservationPage() {
                   <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium block">Message Body</label>
                   <textarea 
                     rows={5}
+                    name="message"
+                    value={contactData.message}
+                    onChange={handleContactChange}
                     placeholder="Describe your requested premium dates or custom services requirements..."
                     className="w-full bg-[#1C1C1C] border border-stone-800 focus:border-[#addfac]/60 rounded px-4 py-3 text-xs text-stone-200 placeholder-stone-600 outline-none transition-colors resize-none"
                   ></textarea>
                 </div>
 
                 <div className="pt-2">
-                  <button className="w-full bg-gradient-to-r from-teal-600 to-[#addfac] text-black font-semibold text-xs py-3.5 rounded tracking-widest uppercase hover:brightness-110 transition-all shadow-md shadow-[#addfac]/5">
+                  <button 
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-teal-600 to-[#addfac] text-black font-semibold text-xs py-3.5 rounded tracking-widest uppercase hover:brightness-110 transition-all shadow-md shadow-[#addfac]/5 active:scale-[0.98]"
+                  >
                     Send Message Now
                   </button>
                 </div>
