@@ -32,10 +32,10 @@ export default function ActiveBookings() {
     if (storedBookings) {
       setBookings(JSON.parse(storedBookings));
     } else {
-      const defaultBookings: Booking[] = [
-        { id: 'WOS-4829', guestName: 'John Doe', email: 'john@example.com', roomType: 'Deluxe Room', checkIn: '2026-06-01', checkOut: '2026-06-05', status: 'Confirmed', totalAmount: '₱18,000' },
-        { id: 'WOS-7712', guestName: 'Sarah Jenkins', email: 'sarah@web.com', roomType: 'Suite Room', checkIn: '2026-06-10', checkOut: '2026-06-12', status: 'Pending', totalAmount: '₱12,000' },
-        { id: 'WOS-9930', guestName: 'Michael Chen', email: 'mchen@test.com', roomType: 'Presidential Suite', checkIn: '2026-06-15', checkOut: '2026-06-20', status: 'Confirmed', totalAmount: '₱75,000' },
+      const defaultBookings: any[] = [
+        { id: 'WOS-4829', guestName: 'John Doe', email: 'john@example.com', roomType: 'Deluxe Room', checkIn: '2026-06-01', checkOut: '2026-06-05', status: 'Confirmed', totalAmount: '₱18,000', downpayment: '2000', timestamp: new Date().toISOString() },
+        { id: 'WOS-7712', guestName: 'Sarah Jenkins', email: 'sarah@web.com', roomType: 'Suite Room', checkIn: '2026-06-10', checkOut: '2026-06-12', status: 'Pending', totalAmount: '₱12,000', downpayment: '1500', timestamp: new Date().toISOString() },
+        { id: 'WOS-9930', guestName: 'Michael Chen', email: 'mchen@test.com', roomType: 'Presidential Suite', checkIn: '2026-06-15', checkOut: '2026-06-20', status: 'Confirmed', totalAmount: '₱75,000', downpayment: '10000', timestamp: new Date().toISOString() },
       ];
       setBookings(defaultBookings);
       localStorage.setItem('admin_bookings', JSON.stringify(defaultBookings));

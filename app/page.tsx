@@ -60,11 +60,15 @@ export default function HotelReservationPage() {
     paymentMethod: '',
     paymentName: '',
     paymentNumber: '',
+    downpayment: '',
     receiptId: '',
-    receiptDate: ''
+    receiptDate: '',
+    totalPrice: ''
   });
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'auth' | 'encrypt' | 'deliver' | 'sent'>('idle');
@@ -158,7 +162,8 @@ ACCOMMODATION DETAILS:
 PAYMENT SUMMARY:
 ----------------
 - Method: ${bookingData.paymentMethod}
-${bookingData.paymentMethod !== 'Cash' ? `- Account Holder: ${bookingData.paymentName}\n- Account Reference: ${bookingData.paymentNumber}` : '- Settlement: Pay upon arrival'}
+- Account Holder: ${bookingData.paymentName}
+- Account Reference: ${bookingData.paymentNumber}
 
 STATUS: RESERVATION CONFIRMED & PENDING ARRIVAL
 
@@ -214,13 +219,20 @@ Whisper of the Sea Resort & Spa`
       return;
     }
 
-    if (bookingData.paymentMethod !== 'Cash') {
-      if (!bookingData.paymentName || !bookingData.paymentNumber) {
-        setBookingError(`Please provide your ${bookingData.paymentMethod} account name and number.`);
-        return;
-      }
+    if (!bookingData.paymentName || !bookingData.paymentNumber) {
+      setBookingError(`Please provide your ${bookingData.paymentMethod} account name and number.`);
+      return;
     }
 
+    if (!bookingData.downpayment || parseFloat(bookingData.downpayment) <= 0) {
+      setBookingError('A mandatory downpayment amount is required to secure your booking.');
+      return;
+    }
+
+    setShowTerms(true);
+  };
+
+  const handleAcceptTerms = () => {
     // Generate Receipt ID and Date
     const rId = "WOS-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     const rDate = new Date().toLocaleDateString('en-US', { 
@@ -231,27 +243,33 @@ Whisper of the Sea Resort & Spa`
       minute: '2-digit'
     });
 
+    // Attempt to get actual price from offerings
+    let finalPrice = '₱ --';
+    try {
+      const roomOfferings = JSON.parse(localStorage.getItem('hotel_offerings') || '[]');
+      const selectedRoom = roomOfferings.find((r: any) => r.title === bookingData.roomType);
+      if (selectedRoom && selectedRoom.price) {
+        finalPrice = selectedRoom.price;
+      }
+    } catch (e) {
+      console.error('Failed to fetch price for receipt', e);
+    }
+
     setBookingData(prev => ({ 
       ...prev, 
       receiptId: rId,
-      receiptDate: rDate
+      receiptDate: rDate,
+      totalPrice: finalPrice
     }));
 
     // Functional booking confirmation
     setBookingSuccess(true);
+    setShowTerms(false);
 
     // Save to admin_bookings for admin visibility
     try {
       const currentBookings = JSON.parse(localStorage.getItem('admin_bookings') || '[]');
       
-      // Attempt to get actual price from offerings
-      let totalPrice = '₱ --';
-      const roomOfferings = JSON.parse(localStorage.getItem('hotel_offerings') || '[]');
-      const selectedRoom = roomOfferings.find((r: any) => r.title === bookingData.roomType);
-      if (selectedRoom && selectedRoom.price) {
-        totalPrice = selectedRoom.price;
-      }
-
       const newBookingEntry = {
         id: rId,
         guestName: `${bookingData.firstName} ${bookingData.lastName}`,
@@ -260,7 +278,10 @@ Whisper of the Sea Resort & Spa`
         checkIn: bookingData.checkIn,
         checkOut: bookingData.checkOut,
         status: 'Confirmed',
-        totalAmount: totalPrice
+        totalAmount: finalPrice,
+        downpayment: bookingData.downpayment,
+        paymentMethod: bookingData.paymentMethod,
+        timestamp: new Date().toISOString()
       };
 
       localStorage.setItem('admin_bookings', JSON.stringify([...currentBookings, newBookingEntry]));
@@ -269,7 +290,7 @@ Whisper of the Sea Resort & Spa`
     }
 
     // In a real app, you'd send this to an API
-    console.log('Booking Confirmed:', { ...bookingData, receiptId: rId, receiptDate: rDate });
+    console.log('Booking Confirmed:', { ...bookingData, receiptId: rId, receiptDate: rDate, totalPrice: finalPrice });
   };
 
   const resetBooking = () => {
@@ -289,11 +310,15 @@ Whisper of the Sea Resort & Spa`
       paymentMethod: '',
       paymentName: '',
       paymentNumber: '',
+      downpayment: '',
       receiptId: '',
-      receiptDate: ''
+      receiptDate: '',
+      totalPrice: ''
     });
     setBookingError('');
     setBookingSuccess(false);
+    setShowTerms(false);
+    setTermsAccepted(false);
     setActivePage('rooms');
   };
 
@@ -489,7 +514,7 @@ Whisper of the Sea Resort & Spa`
               <span className="text-xs font-semibold uppercase tracking-widest text-[#addfac]">About Luxury Hotel</span>
               <h2 className="text-3xl md:text-4xl font-serif italic text-stone-100 leading-tight">
                 Discover The Best Luxury <br />
-                <span className="not-italic font-sans font-light text-[#addfac]">Hotels In California</span>
+                <span className="not-italic font-sans font-light text-[#addfac]">Hotels In Philippines</span>
               </h2>
               <p className="text-sm text-stone-400 leading-relaxed">
                 Whisper of the Sea Hotel & Resort introduces a brand-new definition of eco-elegance. Nestled seamlessly along the raw Pacific coastline, we combine state-of-the-art modular comfort architecture with high-fidelity hospitality.
@@ -500,7 +525,7 @@ Whisper of the Sea Resort & Spa`
                   <div className="space-y-2">
                     <h4 className="text-[#addfac] text-xs font-bold uppercase tracking-widest">Our Heritage</h4>
                     <p className="text-xs text-stone-500 leading-relaxed">
-                      Founded in 2012 by a collective of avant-garde architects and environmentalists, Whisper of the Sea was born from a vision to create a sanctuary that breathes with the ocean. What began as a single modular prototype has evolved into California's premier coastal escape.
+                      Founded in 2012 by a collective of avant-garde architects and environmentalists, Whisper of the Sea was born from a vision to create a sanctuary that breathes with the ocean. What began as a single modular prototype has evolved into Philippines's premier coastal escape.
                     </p>
                   </div>
                   
@@ -578,13 +603,13 @@ Whisper of the Sea Resort & Spa`
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12 justify-center">
               {[
-                { name: "Khate Charmille", role: "General Manager", img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400" },
-                { name: "Shane Garey Gales", role: "Head Concierge", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400" },
-                { name: "Lhorelyn Dalaguit", role: "Executive Chef", img: "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=400" },
-                { name: "Roche Mae Salvaloza", role: "Guest Relations", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400" },
-                { name: "Katrine Matedios", role: "Spa & Wellness Director", img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400" },
-                { name: "Honeylyn Regulacion", role: "Operations Lead", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400" },
-                { name: "James Patrick Inoc", role: "Sommelier", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400" }
+                { name: "Khate Charmeille", role: "General Manager", img: "members/khate.jpg" },
+                { name: "Shane Garey Gales", role: "Head Concierge", img: "members/shane.jpg" },
+                { name: "Lhorelyn Dalaguit", role: "Executive Chef", img: "members/lhor.jpg" },
+                { name: "Roche Mae Salvaloza", role: "Guest Relations", img: "members/ochee.jpg" },
+                { name: "Katrine Matedios", role: "Spa & Wellness Director", img: "members/kat.jpg" },
+                { name: "Honeylyn Regulacion", role: "Operations Lead", img: "members/yorskie.jpg" },
+                { name: "James Patrick Inoc", role: "Sommelier", img: "members/pat.jpg" }
               ].map((member, index) => (
                 <div key={index} className="space-y-4 group">
                   <div className="w-full aspect-[3/4] rounded-t-full overflow-hidden border border-stone-800 shadow-xl relative bg-stone-900">
@@ -868,15 +893,38 @@ Whisper of the Sea Resort & Spa`
                   {/* Payment Summary */}
                   <div className="bg-[#1C1C1C]/50 rounded-2xl p-6 space-y-4">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-stone-400 uppercase tracking-widest">Payment Method</span>
-                      <span className="text-stone-200 font-semibold uppercase">{bookingData.paymentMethod}</span>
+                      <span className="text-stone-400 uppercase tracking-widest">Accommodation Total</span>
+                      <span className="text-stone-200 font-semibold">{bookingData.totalPrice}</span>
                     </div>
-                    {bookingData.paymentMethod !== 'Cash' && (
-                      <div className="flex justify-between items-center text-xs pt-2 border-t border-stone-800">
-                        <span className="text-stone-400 uppercase tracking-widest">Account Name</span>
-                        <span className="text-stone-200">{bookingData.paymentName}</span>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-stone-400 uppercase tracking-widest">Downpayment Paid</span>
+                      <span className="text-emerald-500 font-semibold">
+                        - ₱ {parseFloat(bookingData.downpayment).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs pt-3 border-t border-stone-800">
+                      <span className="text-stone-400 uppercase tracking-widest font-bold">Remaining Balance</span>
+                      <span className="text-[#addfac] font-bold text-sm">
+                        ₱ {(
+                          parseFloat(bookingData.totalPrice.replace(/[^0-9.-]+/g, "")) - 
+                          parseFloat(bookingData.downpayment)
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="pt-4 space-y-3">
+                      <div className="flex justify-between items-center text-[10px] pt-3 border-t border-stone-800">
+                        <span className="text-stone-500 uppercase tracking-widest">Payment Method</span>
+                        <span className="text-stone-300 font-semibold uppercase">{bookingData.paymentMethod}</span>
                       </div>
-                    )}
+                      {bookingData.paymentMethod !== 'Cash' && (
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-stone-500 uppercase tracking-widest">Account Name</span>
+                          <span className="text-stone-300">{bookingData.paymentName}</span>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex justify-between items-center pt-4 border-t border-stone-800 text-[#addfac]">
                       <span className="text-xs uppercase tracking-[0.3em] font-bold">Total Status</span>
                       <span className="text-sm font-bold uppercase tracking-widest">Confirmed & Pending</span>
@@ -932,6 +980,68 @@ Whisper of the Sea Resort & Spa`
                   >
                     Return to Reserve Sanctuary
                   </button>
+                </div>
+              </div>
+            </div>
+          ) : showTerms ? (
+            <div className="max-w-2xl mx-auto py-10 animate-fadeIn">
+              <div className="bg-stone-900 border border-stone-800 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="p-8 md:p-10 space-y-6">
+                  <div className="w-16 h-16 bg-[#addfac]/10 text-[#addfac] rounded-full flex items-center justify-center mb-6">
+                    <Shield className="w-8 h-8" />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h2 className="text-3xl font-serif italic text-white">Terms of Agreement</h2>
+                    <p className="text-[#addfac] text-[10px] uppercase tracking-[0.2em] font-semibold">Whisper of the Sea Resort & Spa</p>
+                  </div>
+
+                  <div className="space-y-4 text-sm text-stone-400 leading-relaxed max-h-[300px] overflow-y-auto pr-4 custom-scrollbar">
+                    <p>By proceeding with this reservation, you acknowledge and agree to the following terms and conditions:</p>
+                    <ul className="list-disc pl-5 space-y-3 text-xs">
+                      <li><strong>Check-in/Check-out:</strong> Official check-in is at 2:00 PM and check-out is at 12:00 PM. Early check-in or late check-out is subject to availability and may incur additional fees.</li>
+                      <li><strong>Cancellation Policy:</strong> Cancellations made within 48 hours of the scheduled arrival date will incur a penalty equivalent to one night's room charge.</li>
+                      <li><strong>No-Smoking Policy:</strong> Whisper of the Sea is a strictly smoke-free sanctuary. A deep cleaning fee of ₱5,000 will be charged for any violations within the suites.</li>
+                      <li><strong>Identification:</strong> A valid government-issued photo ID or passport must be presented upon arrival for all staying guests.</li>
+                      <li><strong>Liability:</strong> The resort is not responsible for loss, damage, or theft of personal valuables not secured in the provided room safe or at the front desk.</li>
+                      <li><strong>Eco-Sanctuary Rules:</strong> To maintain our eco-elegance, we request guests to minimize noise during the "Whispering Hours" (10:00 PM - 7:00 AM).</li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-6 border-t border-stone-800 space-y-6">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="relative flex items-center mt-1">
+                        <input
+                          type="checkbox"
+                          checked={termsAccepted}
+                          onChange={(e) => setTermsAccepted(e.target.checked)}
+                          className="peer appearance-none w-5 h-5 border border-stone-700 rounded bg-stone-950 checked:bg-[#addfac] checked:border-[#addfac] transition-all cursor-pointer"
+                        />
+                        <Sparkles className="absolute w-3 h-3 text-black opacity-0 peer-checked:opacity-100 left-1 pointer-events-none transition-opacity" />
+                      </div>
+                      <span className="text-xs text-stone-400 group-hover:text-stone-300 transition-colors leading-relaxed select-none">
+                        I have read and agree to the Whisper of the Sea Resort & Spa Terms of Agreement. I understand that my reservation is subject to these policies.
+                      </span>
+                    </label>
+
+                    <button
+                      onClick={handleAcceptTerms}
+                      disabled={!termsAccepted}
+                      className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg ${
+                        termsAccepted 
+                          ? "bg-[#addfac] text-black hover:brightness-110 shadow-[#addfac]/10" 
+                          : "bg-stone-800 text-stone-500 cursor-not-allowed shadow-none"
+                      }`}
+                    >
+                      Proceed to Receipt
+                    </button>
+                    <button
+                      onClick={() => setShowTerms(false)}
+                      className="w-full text-stone-500 hover:text-stone-300 py-1 text-[10px] uppercase tracking-widest transition-colors"
+                    >
+                      Go Back to Booking Details
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1212,8 +1322,8 @@ Whisper of the Sea Resort & Spa`
                         Payment Method
                       </label>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {['Bank', 'Cash', 'Gcash'].map((method) => (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {['Bank', 'Gcash'].map((method) => (
                           <button
                             key={method}
                             onClick={() => {
@@ -1233,7 +1343,7 @@ Whisper of the Sea Resort & Spa`
                     </div>
 
                     {/* Conditional Payment Details */}
-                    {bookingData.paymentMethod !== 'Cash' && bookingData.paymentMethod !== '' && (
+                    {bookingData.paymentMethod !== '' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
                         <div className="space-y-2">
                           <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
@@ -1263,6 +1373,23 @@ Whisper of the Sea Resort & Spa`
                         </div>
                       </div>
                     )}
+
+                    <div className="space-y-2 max-w-md animate-fadeIn">
+                      <label className="text-[10px] uppercase tracking-widest text-stone-400 font-medium ml-1">
+                        Mandatory Downpayment Amount (₱)
+                      </label>
+                      <input
+                        type="number"
+                        name="downpayment"
+                        value={bookingData.downpayment}
+                        onChange={handleBookingChange}
+                        placeholder="e.g. 2000"
+                        className="w-full bg-[#1C1C1C] border border-stone-700 rounded-xl px-5 py-4 outline-none focus:border-[#addfac] transition"
+                      />
+                      <p className="text-[10px] text-stone-500 italic px-1">
+                        * A minimum downpayment is required to secure your reservation sanctuary.
+                      </p>
+                    </div>
 
                   </div>
 
@@ -1464,7 +1591,7 @@ Whisper of the Sea Resort & Spa`
             <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 items-start text-xs tracking-wide text-stone-400">
               <div className="space-y-3">
                 <h5 className="font-serif text-[#addfac] text-sm tracking-wider uppercase font-medium">Whisper of the Sea</h5>
-                <p className="font-light leading-relaxed">Pristine California eco-elegance. Complete deep coastal luxury sanctuary infrastructure.</p>
+                <p className="font-light leading-relaxed">Pristine Philippines eco-elegance. Complete deep coastal luxury sanctuary infrastructure.</p>
               </div>
               <div className="space-y-2">
                 <h5 className="text-stone-200 font-semibold tracking-widest uppercase text-[10px]">Quick Travel Links</h5>

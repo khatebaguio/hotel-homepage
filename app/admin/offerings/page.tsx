@@ -33,12 +33,13 @@ export default function ManageOfferings() {
   const [editingOffering, setEditingOffering] = useState<Offering | null>(null);
   const [activeTab, setActiveTab] = useState<'Room' | 'Service'>('Room');
 
+  // FIXED: Pointing to the exact file with spaces
   const [formData, setFormData] = useState({
     type: 'Room' as 'Room' | 'Service',
     title: '',
     description: '',
     price: '',
-    image: 'img 1.jpg',
+    image: '/img 1.jpg',
     icon: 'Shield'
   });
 
@@ -56,13 +57,14 @@ export default function ManageOfferings() {
     if (stored) {
       setOfferings(JSON.parse(stored));
     } else {
+      // FIXED: Initial setup data updated to use spaces
       const defaults: Offering[] = [
-        { id: 1, type: 'Room', title: "Superior Room", description: "Spacious rooms with modern amenities for a relaxing stay.", price: "₱3,500", image: "img 1.jpg" },
-        { id: 2, type: 'Room', title: "Deluxe Room", description: "Comfortable Stay designed for a pleasant and peaceful stay.", price: "₱4,500", image: "img 2.jpg" },
-        { id: 3, type: 'Room', title: "Suite Room", description: "Spacious suites with elegant ambiance and premium comfort.", price: "₱6,000", image: "img 3.jpg" },
-        { id: 4, type: 'Room', title: "Signature Ocean Suite", description: "Panoramic oceanic views paired with bespoke mid-century modular interiors.", price: "₱8,500", image: "img 4.jpg" },
-        { id: 5, type: 'Room', title: "Whispering Waves Haven", description: "A custom beach-level sanctuary featuring a private path to raw sand shores.", price: "₱12,000", image: "img 5.jpg" },
-        { id: 6, type: 'Room', title: "Sanctuary Penthouse", description: "The absolute pinnacle of resort luxury, offering panoramic rooftop ocean vistas.", price: "₱25,000", image: "img 6.jpg" },
+        { id: 1, type: 'Room', title: "Superior Room", description: "Spacious rooms with modern amenities for a relaxing stay.", price: "₱3,500", image: "/img 1.jpg" },
+        { id: 2, type: 'Room', title: "Deluxe Room", description: "Comfortable Stay designed for a pleasant and peaceful stay.", price: "₱4,500", image: "/img 2.jpg" },
+        { id: 3, type: 'Room', title: "Suite Room", description: "Spacious suites with elegant ambiance and premium comfort.", price: "₱6,000", image: "/img 3.jpg" },
+        { id: 4, type: 'Room', title: "Signature Ocean Suite", description: "Panoramic oceanic views paired with bespoke mid-century modular interiors.", price: "₱8,500", image: "/img 4.jpg" },
+        { id: 5, type: 'Room', title: "Whispering Waves Haven", description: "A custom beach-level sanctuary featuring a private path to raw sand shores.", price: "₱12,000", image: "/img 5.jpg" },
+        { id: 6, type: 'Room', title: "Sanctuary Penthouse", description: "The absolute pinnacle of resort luxury, offering panoramic rooftop ocean vistas.", price: "₱25,000", image: "/img 6.jpg" },
         { id: 7, type: 'Service', title: "Hotel Security", description: "24/7 Professional monitoring", icon: "Shield" },
         { id: 8, type: 'Service', title: "Speed Internet", description: "High-speed fiber connectivity", icon: "Wifi" },
         { id: 9, type: 'Service', title: "Swimming Pool", description: "Pristine infinity pool access", icon: "Waves" },
@@ -88,7 +90,7 @@ export default function ManageOfferings() {
         title: offering.title,
         description: offering.description,
         price: offering.price || '',
-        image: offering.image || 'img 1.jpg',
+        image: offering.image || '/img 1.jpg', // FIXED
         icon: offering.icon || 'Shield'
       });
     } else {
@@ -98,7 +100,7 @@ export default function ManageOfferings() {
         title: '',
         description: '',
         price: '',
-        image: activeTab === 'Room' ? 'img 1.jpg' : '',
+        image: activeTab === 'Room' ? '/img 1.jpg' : '', // FIXED
         icon: activeTab === 'Service' ? 'Shield' : ''
       });
     }
@@ -138,13 +140,14 @@ export default function ManageOfferings() {
 
   const resetToDefaults = () => {
     if (confirm('Are you sure you want to reset all offerings to defaults? This will overwrite your current changes.')) {
+      // FIXED: Reset function targets correct physical file formats
       const defaults: Offering[] = [
-        { id: 1, type: 'Room', title: "Superior Room", description: "Spacious rooms with modern amenities for a relaxing stay.", price: "₱3,500", image: "img 1.jpg" },
-        { id: 2, type: 'Room', title: "Deluxe Room", description: "Comfortable Stay designed for a pleasant and peaceful stay.", price: "₱4,500", image: "img 2.jpg" },
-        { id: 3, type: 'Room', title: "Suite Room", description: "Spacious suites with elegant ambiance and premium comfort.", price: "₱6,000", image: "img 3.jpg" },
-        { id: 4, type: 'Room', title: "Signature Ocean Suite", description: "Panoramic oceanic views paired with bespoke mid-century modular interiors.", price: "₱8,500", image: "img 4.jpg" },
-        { id: 5, type: 'Room', title: "Whispering Waves Haven", description: "A custom beach-level sanctuary featuring a private path to raw sand shores.", price: "₱12,000", image: "img 5.jpg" },
-        { id: 6, type: 'Room', title: "Sanctuary Penthouse", description: "The absolute pinnacle of resort luxury, offering panoramic rooftop ocean vistas.", price: "₱25,000", image: "img 6.jpg" },
+        { id: 1, type: 'Room', title: "Superior Room", description: "Spacious rooms with modern amenities for a relaxing stay.", price: "₱3,500", image: "/img 1.jpg" },  
+        { id: 2, type: 'Room', title: "Deluxe Room", description: "Comfortable Stay designed for a pleasant and peaceful stay.", price: "₱4,500", image: "/img 2.jpg" },
+        { id: 3, type: 'Room', title: "Suite Room", description: "Spacious suites with elegant ambiance and premium comfort.", price: "₱6,000", image: "/img 3.jpg" },
+        { id: 4, type: 'Room', title: "Signature Ocean Suite", description: "Panoramic oceanic views paired with bespoke mid-century modular interiors.", price: "₱8,500", image: "/img 4.jpg" },
+        { id: 5, type: 'Room', title: "Whispering Waves Haven", description: "A custom beach-level sanctuary featuring a private path to raw sand shores.", price: "₱12,000", image: "/img 5.jpg" },
+        { id: 6, type: 'Room', title: "Sanctuary Penthouse", description: "The absolute pinnacle of resort luxury, offering panoramic rooftop ocean vistas.", price: "₱25,000", image: "/img 6.jpg" },
         { id: 7, type: 'Service', title: "Hotel Security", description: "24/7 Professional monitoring", icon: "Shield" },
         { id: 8, type: 'Service', title: "Speed Internet", description: "High-speed fiber connectivity", icon: "Wifi" },
         { id: 9, type: 'Service', title: "Swimming Pool", description: "Pristine infinity pool access", icon: "Waves" },
@@ -304,18 +307,19 @@ export default function ManageOfferings() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Cover Image</label>
+                    {/* FIXED: Mapped drop-down selections to exact files with spaces */}
                     <select
                       name="image"
                       value={formData.image}
                       onChange={handleInputChange}
                       className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm bg-white"
                     >
-                      <option value="img 1.jpg">Superior Room View</option>
-                      <option value="img 2.jpg">Deluxe Room View</option>
-                      <option value="img 3.jpg">Suite Room View</option>
-                      <option value="img 4.jpg">Signature Ocean Suite View</option>
-                      <option value="img 5.jpg">Whispering Waves Haven View</option>
-                      <option value="img 6.jpg">Sanctuary Penthouse View</option>
+                      <option value="/img 1.jpg">Superior Room View</option>
+                      <option value="/img 2.jpg">Deluxe Room View</option>
+                      <option value="/img 3.jpg">Suite Room View</option>
+                      <option value="/img 4.jpg">Signature Ocean Suite View</option>
+                      <option value="/img 5.jpg">Whispering Waves Haven View</option>
+                      <option value="/img 6.jpg">Sanctuary Penthouse View</option>
                     </select>
                   </div>
                 </div>

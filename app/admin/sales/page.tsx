@@ -23,23 +23,24 @@ interface SaleTransaction {
 }
 
 export default function SalesManagement() {
-  const [sales, setSales] = useState<SaleTransaction[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const storedSales = localStorage.getItem('admin_sales');
-    if (storedSales) {
-      setSales(JSON.parse(storedSales));
-    } else {
-      // Seed initial data from bookings and mock transactions
-      const defaultSales: SaleTransaction[] = [
-        { id: 'TXN-8821', customer: 'John Doe', item: 'Deluxe Room (4 Nights)', amount: '₱18,000', date: '2026-05-28', status: 'Completed' },
-        { id: 'TXN-9902', customer: 'Sarah Jenkins', item: 'Suite Room (2 Nights)', amount: '₱12,000', date: '2026-05-29', status: 'Pending' },
-        { id: 'TXN-7741', customer: 'Michael Chen', item: 'Presidential Suite (5 Nights)', amount: '₱75,000', date: '2026-05-25', status: 'Completed' },
-        { id: 'TXN-1123', customer: 'Anna Smith', item: 'Superior Room (1 Night)', amount: '₱3,500', date: '2026-05-29', status: 'Completed' },
-      ];
-      setSales(defaultSales);
-      localStorage.setItem('admin_sales', JSON.stringify(defaultSales));
+    const storedBookings = localStorage.getItem('admin_bookings');
+    if (storedBookings) {
+      const bookings = JSON.parse(storedBookings);
+      // Map bookings to sale transaction format
+      const bookingSales = bookings.map((b: any) => ({
+        id: b.id.replace('WOS-', 'TXN-'),
+        customer: b.guestName,
+        item: b.roomType,
+        amount: b.totalAmount,
+        downpayment: b.downpayment || '0',
+        date: b.timestamp ? b.timestamp.split('T')[0] : '2026-05-29',
+        status: b.status === 'Confirmed' ? 'Completed' : 'Pending'
+      }));
+      setSales(bookingSales);
     }
   }, []);
 
@@ -49,19 +50,42 @@ export default function SalesManagement() {
   );
 
   const totalRevenue = sales.reduce((acc, curr) => {
-    if (curr.status === 'Completed') {
-      const val = parseInt(curr.amount.replace(/[^0-9]/g, '')) || 0;
+    const val = parseInt(String(curr.amount).replace(/[^0-9]/g, '')) || 0;
+    return acc + val;
+  }, 0);
+
+  const todaysSales = sales.reduce((acc, curr) => {
+    const today = new Date().toISOString().split('T')[0];
+    if (curr.date === today) {
+      const val = parseInt(String(curr.downpayment).replace(/[^0-9]/g, '')) || 0;
       return acc + val;
     }
     return acc;
   }, 0);
+
+  const pendingPayments = sales.reduce((acc, curr) => {
+    const total = parseInt(String(curr.amount).replace(/[^0-9]/g, '')) || 0;
+    const paid = parseInt(String(curr.downpayment).replace(/[^0-9]/g, '')) || 0;
+    return acc + (total - paid);
+  }, 0);
+
+  const formatCurrency = (val: any) => {
+    const num = parseInt(String(val).replace(/[^0-9]/g, '')) || 0;
+    return `₱${num.toLocaleString()}`;
+  };
+
+  const calculateBalance = (total: any, paid: any) => {
+    const t = parseInt(String(total).replace(/[^0-9]/g, '')) || 0;
+    const p = parseInt(String(paid).replace(/[^0-9]/g, '')) || 0;
+    return `₱${(t - p).toLocaleString()}`;
+  };
 
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Sales & Revenue</h1>
-          <p className="text-slate-500 text-sm">Monitor hotel earnings and transaction history</p>
+          <p className="text-slate-500 text-sm">Monitor real-time guest bookings and earnings</p>
         </div>
         <button className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20">
           <Download size={18} />
@@ -71,30 +95,30 @@ export default function SalesManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-           <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl text-white">
+           <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl">
               <TrendingUp size={24} />
            </div>
            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Revenue</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Expected Revenue</p>
               <p className="text-2xl font-bold text-slate-800">₱{totalRevenue.toLocaleString()}</p>
            </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-           <div className="bg-blue-100 text-blue-600 p-3 rounded-xl text-white">
+           <div className="bg-blue-100 text-blue-600 p-3 rounded-xl">
               <DollarSign size={24} />
            </div>
            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Today's Sales</p>
-              <p className="text-2xl font-bold text-slate-800">₱15,500</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Today's Received</p>
+              <p className="text-2xl font-bold text-slate-800">₱{todaysSales.toLocaleString()}</p>
            </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-           <div className="bg-amber-100 text-amber-600 p-3 rounded-xl text-white">
+           <div className="bg-amber-100 text-amber-600 p-3 rounded-xl">
               <Clock size={24} />
            </div>
            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Payments</p>
-              <p className="text-2xl font-bold text-slate-800">₱12,000</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Remaining Balance</p>
+              <p className="text-2xl font-bold text-slate-800">₱{pendingPayments.toLocaleString()}</p>
            </div>
         </div>
       </div>
@@ -124,9 +148,10 @@ export default function SalesManagement() {
                 <th className="px-6 py-4">Transaction ID</th>
                 <th className="px-6 py-4">Customer</th>
                 <th className="px-6 py-4">Description</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4 text-right">Total</th>
+                <th className="px-6 py-4 text-right">Paid</th>
+                <th className="px-6 py-4 text-right">Balance</th>
+                <th className="px-6 py-4 text-center">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -141,21 +166,16 @@ export default function SalesManagement() {
                   <td className="px-6 py-4 text-sm text-slate-500">
                     {txn.item}
                   </td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                    {txn.amount}
+                  <td className="px-6 py-4 text-sm font-bold text-slate-900 text-right">
+                    {formatCurrency(txn.amount)}
                   </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${
-                      txn.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
-                      txn.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
-                      'bg-rose-100 text-rose-700'
-                    }`}>
-                      {txn.status === 'Completed' ? <CheckCircle2 size={10} /> : 
-                       txn.status === 'Pending' ? <Clock size={10} /> : <XCircle size={10} />}
-                      {txn.status}
-                    </span>
+                  <td className="px-6 py-4 text-sm font-bold text-emerald-600 text-right">
+                    {formatCurrency(txn.downpayment)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                  <td className="px-6 py-4 text-sm font-bold text-amber-600 text-right">
+                    {calculateBalance(txn.amount, txn.downpayment)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-500 font-medium text-center">
                     {txn.date}
                   </td>
                 </tr>

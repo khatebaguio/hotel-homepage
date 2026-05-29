@@ -14,30 +14,29 @@ export default function AdminDashboard() {
   const [userCount, setUserCount] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
   const [bookingCount, setBookingCount] = useState(0);
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
 
   useEffect(() => {
     // Load counts from localStorage
     const storedUsers = localStorage.getItem('admin_users');
-    const storedSales = localStorage.getItem('admin_sales');
     const storedBookings = localStorage.getItem('admin_bookings');
 
     if (storedUsers) {
       setUserCount(JSON.parse(storedUsers).length);
     }
     
-    if (storedSales) {
-      const sales = JSON.parse(storedSales);
-      const revenue = sales.reduce((acc: number, curr: any) => {
-        if (curr.status === 'Completed') {
-          return acc + (parseInt(curr.amount.replace(/[^0-9]/g, '')) || 0);
+    if (storedBookings) {
+      const bookings = JSON.parse(storedBookings);
+      setBookingCount(bookings.length);
+      setRecentBookings(bookings.slice(-3).reverse());
+      
+      const revenue = bookings.reduce((acc: number, curr: any) => {
+        if (curr.status === 'Confirmed') {
+          return acc + (parseInt(curr.totalAmount.replace(/[^0-9]/g, '')) || 0);
         }
         return acc;
       }, 0);
       setTotalSales(revenue);
-    }
-
-    if (storedBookings) {
-      setBookingCount(JSON.parse(storedBookings).length);
     }
   }, []);
 
@@ -110,18 +109,22 @@ export default function AdminDashboard() {
             
             <div className="space-y-4">
                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-widest">Recent Reservations</h3>
-               {[1, 2].map((i) => (
-                 <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+               {recentBookings.length > 0 ? recentBookings.map((booking) => (
+                 <div key={booking.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
                     <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs">G</div>
+                       <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs">
+                         {booking.guestName.charAt(0)}
+                       </div>
                        <div>
-                          <p className="text-xs font-bold text-slate-800">Guest {i}</p>
-                          <p className="text-[10px] text-slate-500">Deluxe Room • 2 Nights</p>
+                          <p className="text-xs font-bold text-slate-800">{booking.guestName}</p>
+                          <p className="text-[10px] text-slate-500">{booking.roomType}</p>
                        </div>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">Confirmed</span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">{booking.status}</span>
                  </div>
-               ))}
+               )) : (
+                 <p className="text-center text-xs text-slate-400 py-4">No recent reservations</p>
+               )}
             </div>
           </div>
         </div>

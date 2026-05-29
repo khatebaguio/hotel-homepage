@@ -28,8 +28,9 @@ export default function HomeView({ setActivePage }: HomeViewProps) {
         </div>
 
         <div className="lg:col-span-6 relative w-full h-[400px] md:h-[520px] rounded-3xl overflow-hidden border border-stone-800 shadow-2xl">
+          {/* FIXED: Changed "pic 1.jpg" to "/pic 1.jpg" */}
           <img 
-            src="pic 1.jpg" 
+            src="/pic 1.jpg" 
             alt="Whisper of the Sea Resort Pool Overlooking Ocean" 
             className="w-full h-full object-cover brightness-90 saturate-[0.85] hover:scale-105 transition-transform duration-[2000ms]"
           />
@@ -47,10 +48,11 @@ export default function HomeView({ setActivePage }: HomeViewProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* FIXED: Added a leading "/" to the img fields below to map to your public files */}
           {[
-            { title: "Deluxe Ocean Room", sub: "Modern Elegance", img: "pic 2.jpg" },
-            { title: "Whispering Waves Suite", sub: "Minimal & Functional Space", img: "pic 3.jpg" },
-            { title: "Sanctuary Ocean Villa", sub: "Comfort & Ultimate Style", img: "pic 4.jpg" }
+            { title: "Deluxe Ocean Room", sub: "Modern Elegance", img: "/pic 2.jpg" },
+            { title: "Whispering Waves Suite", sub: "Minimal & Functional Space", img: "/pic 3.jpg" },
+            { title: "Sanctuary Ocean Villa", sub: "Comfort & Ultimate Style", img: "/pic 4.jpg" }
           ].map((suite, idx) => (
             <div key={idx} className="relative rounded-2xl overflow-hidden group border border-stone-900 shadow-xl aspect-[4/5] cursor-pointer">
               <img 
